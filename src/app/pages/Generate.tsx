@@ -178,10 +178,20 @@ export function Generate() {
   const handleNext = () => {
     const q = QUESTIONS[currentQ];
     const val = getAnswerValue(answers, q.key);
-    if (!val && q.key !== "instruments") {
+
+    // "instruments" and "duration" don't need a manual selection to proceed
+    const isOptional = q.key === "instruments" || q.key === "duration";
+
+    if (!val && !isOptional) {
       toast.error("Please make a selection before continuing");
       return;
     }
+
+    // Auto-set duration to plan max if user never touched the slider
+    if (q.key === "duration" && !answers.duration && usage) {
+      setAnswers(prev => ({ ...prev, duration: usage.maxDuration }));
+    }
+
     if (currentQ < QUESTIONS.length - 1) {
       setCurrentQ(c => c + 1);
     } else {
@@ -204,7 +214,8 @@ export function Generate() {
       instruments: String(answers.instruments || ""),
       useCase:     String(answers.useCase     || ""),
       vocals:      String(answers.vocals      || "no").includes("Yes") ? "yes" : "no",
-      duration:    Number(answers.duration    || usage.maxDuration),
+      // duration may not be set if the user never moved the slider — fall back to plan max
+      duration:    Number(answers.duration) > 0 ? Number(answers.duration) : usage.maxDuration,
     };
 
     setStep("generating");
